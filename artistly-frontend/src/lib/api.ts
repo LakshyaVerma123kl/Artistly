@@ -4,17 +4,16 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://artistly-1jpx.onrender.com";
 
 // Centralized response handler
-const handleResponse = async (res: Response, retries = 1): Promise<any> => {
+const handleResponse = async <T>(res: Response, retries = 1): Promise<T> => {
   if (res.ok) return res.json();
 
   const errorData = await res.json().catch(() => ({}));
   const message = errorData.message || `API error: ${res.status}`;
 
   if (res.status === 429 && retries > 0) {
-    // Wait 1.5 seconds before retrying
     await new Promise((resolve) => setTimeout(resolve, 1500));
     return fetch(res.url, res).then((retryRes) =>
-      handleResponse(retryRes, retries - 1)
+      handleResponse<T>(retryRes, retries - 1)
     );
   }
 
