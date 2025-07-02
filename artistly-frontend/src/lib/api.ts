@@ -29,7 +29,6 @@ const handleResponse = async <T>(res: Response, retries = 1): Promise<T> => {
     console.log("⏳ Rate limited, retrying in 1.5s...");
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Create a new request with the same options
     const originalRequest = new Request(res.url, {
       method: res.headers.get("x-original-method") || "GET",
       headers: {
@@ -46,7 +45,7 @@ const handleResponse = async <T>(res: Response, retries = 1): Promise<T> => {
 };
 
 export const api = {
-  // GET all artists (optionally filtered)
+  // ✅ GET all artists (optionally filtered)
   async getArtists(params?: {
     category?: string;
     location?: string;
@@ -55,7 +54,6 @@ export const api = {
     try {
       const searchParams = new URLSearchParams();
 
-      // Only add non-empty parameters
       if (
         params?.category &&
         params.category.trim() !== "" &&
@@ -96,21 +94,25 @@ export const api = {
 
       const data = await handleResponse<Artist[]>(response);
 
-      // Validate that we got an array
       if (!Array.isArray(data)) {
         console.error("❌ Expected array but got:", typeof data, data);
         throw new Error("Invalid response format: expected array of artists");
       }
 
-      console.log(`✅ Successfully fetched ${data.length} artists`);
-      return data;
+      // ✅ Clean invalid artist entries
+      const cleaned = data.filter(
+        (artist) => artist && (artist._id || artist.id) && artist.name
+      );
+
+      console.log(`✅ Successfully fetched ${cleaned.length} valid artists`);
+      return cleaned;
     } catch (error) {
       console.error("❌ Failed to fetch artists:", error);
       throw error;
     }
   },
 
-  // GET one artist by ID
+  // ✅ GET one artist by ID
   async getArtist(id: string): Promise<Artist> {
     try {
       const url = `${API_BASE_URL}/api/artists/${id}`;
@@ -131,7 +133,7 @@ export const api = {
     }
   },
 
-  // POST create new artist
+  // ✅ POST create new artist
   async createArtist(data: Artist): Promise<Artist> {
     try {
       const url = `${API_BASE_URL}/api/artists`;
@@ -153,7 +155,7 @@ export const api = {
     }
   },
 
-  // PUT update artist
+  // ✅ PUT update artist
   async updateArtist(id: string, data: Partial<Artist>): Promise<Artist> {
     try {
       const url = `${API_BASE_URL}/api/artists/${id}`;
@@ -175,7 +177,7 @@ export const api = {
     }
   },
 
-  // DELETE artist (Updated to void return + custom error message)
+  // ✅ DELETE artist
   async deleteArtist(id: string): Promise<void> {
     try {
       const url = `${API_BASE_URL}/api/artists/${id}`;
@@ -204,7 +206,6 @@ export const api = {
       }
 
       console.log(`✅ Successfully deleted artist ${id}`);
-      // Successful deletion returns void
       return;
     } catch (error) {
       console.error(`❌ Failed to delete artist ${id}:`, error);
@@ -212,7 +213,7 @@ export const api = {
     }
   },
 
-  // POST upload image
+  // ✅ POST upload image
   async uploadImage(file: File): Promise<{ filename: string; path: string }> {
     try {
       const formData = new FormData();
@@ -233,7 +234,7 @@ export const api = {
     }
   },
 
-  // GET health (optional backend check)
+  // ✅ GET health
   async getHealth(): Promise<{ message: string; endpoints: string[] }> {
     try {
       const url = `${API_BASE_URL}/api`;
@@ -256,7 +257,7 @@ export const api = {
     }
   },
 
-  // Test connection method
+  // ✅ Connection test helper
   async testConnection(): Promise<boolean> {
     try {
       await this.getHealth();
