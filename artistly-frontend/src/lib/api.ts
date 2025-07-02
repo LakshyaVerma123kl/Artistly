@@ -5,11 +5,8 @@ const API_BASE_URL =
 
 // Centralized response handler with better error handling
 const handleResponse = async <T>(res: Response, retries = 1): Promise<T> => {
-  console.log(`📡 API Response: ${res.status} - ${res.url}`);
-
   if (res.ok) {
     const data = await res.json();
-    console.log("✅ API Success:", data);
     return data;
   }
 
@@ -81,9 +78,6 @@ export const api = {
         queryString ? `?${queryString}` : ""
       }`;
 
-      console.log("🔍 Fetching artists from:", url);
-      console.log("📋 Query params:", params);
-
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -104,7 +98,6 @@ export const api = {
         (artist) => artist && (artist._id || artist.id) && artist.name
       );
 
-      console.log(`✅ Successfully fetched ${cleaned.length} valid artists`);
       return cleaned;
     } catch (error) {
       console.error("❌ Failed to fetch artists:", error);
