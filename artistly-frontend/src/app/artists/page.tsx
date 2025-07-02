@@ -16,10 +16,6 @@ export default function ArtistsPage() {
   const [error, setError] = useState<string>("");
 
   // Fetch all artists on initial load
-  useEffect(() => {
-    loadArtists();
-  }, []);
-
   const loadArtists = async (filters?: {
     category?: string;
     location?: string;
@@ -39,6 +35,11 @@ export default function ArtistsPage() {
       setIsLoading(false);
     }
   };
+
+  // ✅ Now use it safely here:
+  useEffect(() => {
+    loadArtists();
+  }, []);
 
   // Handle filter changes
   const handleFilter = useCallback(
