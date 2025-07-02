@@ -16,30 +16,56 @@ export default function ArtistsPage() {
   const [error, setError] = useState<string>("");
 
   // Fetch all artists on initial load
-  const loadArtists = async (filters?: {
-    category?: string;
-    location?: string;
-    priceRange?: string;
-  }) => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const loadArtists = useCallback(
+    async (filters?: {
+      category?: string;
+      location?: string;
+      priceRange?: string;
+    }) => {
+      try {
+        setIsLoading(true);
+        setError("");
 
-      const data = await api.getArtists(filters);
-      console.log("✅ Artists loaded:", data);
-      setFilteredArtists(data);
-    } catch (err) {
-      console.error("❌ Failed to fetch artists:", err);
-      setError(err instanceof Error ? err.message : "Failed to load artists");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        console.log("🔄 Loading artists with filters:", filters);
 
-  // ✅ Now use it safely here:
+        const data = await api.getArtists(filters);
+        console.log("✅ Artists loaded:", data);
+        console.log("📊 Number of artists:", data?.length || 0);
+
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setFilteredArtists(data);
+        } else {
+          console.error("❌ Expected array but got:", typeof data, data);
+          setFilteredArtists([]);
+          setError("Invalid data format received from server");
+        }
+      } catch (err) {
+        console.error("❌ Failed to fetch artists:", err);
+        setError(err instanceof Error ? err.message : "Failed to load artists");
+        setFilteredArtists([]); // Ensure state is reset on error
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  // Initial load effect
   useEffect(() => {
+    console.log("🚀 Component mounted, loading artists...");
     loadArtists();
-  }, []);
+  }, [loadArtists]);
+
+  // Debug effect to track state changes
+  useEffect(() => {
+    console.log("🔍 State updated:", {
+      isLoading,
+      artistsCount: filteredArtists.length,
+      hasError: !!error,
+      error,
+    });
+  }, [isLoading, filteredArtists.length, error]);
 
   // Handle filter changes
   const handleFilter = useCallback(
@@ -53,14 +79,15 @@ export default function ArtistsPage() {
       priceRange: string;
     }) => {
       const filters = {
-        ...(category && { category }),
-        ...(location && { location }),
-        ...(priceRange && { priceRange }),
+        ...(category && category !== "all" && { category }),
+        ...(location && location !== "all" && { location }),
+        ...(priceRange && priceRange !== "all" && { priceRange }),
       };
 
-      await loadArtists(filters);
+      console.log("🔍 Applying filters:", filters);
+      await loadArtists(Object.keys(filters).length > 0 ? filters : undefined);
     },
-    []
+    [loadArtists]
   );
 
   // Handle artist deletion with better error handling
@@ -76,17 +103,8 @@ export default function ArtistsPage() {
       );
 
       console.log("✅ Artist deleted successfully");
-
-      // Optionally show a success message
-      // You can replace this with a toast notification if you have one
-      setTimeout(() => {
-        // This could be a toast notification instead
-        console.log("Artist removed from view");
-      }, 500);
     } catch (error) {
       console.error("❌ Failed to delete artist:", error);
-
-      // Re-throw to let the component handle the error display
       throw new Error(
         error instanceof Error ? error.message : "Failed to delete artist"
       );
@@ -94,9 +112,10 @@ export default function ArtistsPage() {
   }, []);
 
   // Retry loading artists
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
+    console.log("🔄 Retrying to load artists...");
     loadArtists();
-  };
+  }, [loadArtists]);
 
   // Animation variants
   const cardVariants = {
@@ -108,6 +127,12 @@ export default function ArtistsPage() {
     }),
   };
 
+  console.log("🎨 Rendering component:", {
+    isLoading,
+    artistsCount: filteredArtists.length,
+    hasError: !!error,
+  });
+
   // Loading component
   if (isLoading) {
     return (
@@ -117,6 +142,9 @@ export default function ArtistsPage() {
             <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-lg text-gray-600 dark:text-gray-300">
               Loading artists...
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Please wait while we fetch the latest artists
             </p>
           </div>
         </div>
@@ -209,6 +237,14 @@ export default function ArtistsPage() {
             </div>
           )}
 
+          {/* Debug Info - Remove this in production */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
+              Debug: Found {filteredArtists.length} artists | Loading:{" "}
+              {isLoading.toString()} | Error: {error || "none"}
+            </p>
+          </div>
+
           {/* Artist Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArtists.length > 0 ? (
@@ -218,9 +254,14 @@ export default function ArtistsPage() {
                   id: artist._id ?? artist.id,
                 };
 
+                console.log(
+                  `🎭 Rendering artist ${index + 1}:`,
+                  normalizedArtist.name
+                );
+
                 return (
                   <motion.div
-                    key={normalizedArtist.id}
+                    key={normalizedArtist.id || `artist-${index}`}
                     custom={index}
                     initial="hidden"
                     animate="visible"
@@ -243,7 +284,7 @@ export default function ArtistsPage() {
                   form.
                 </p>
                 <Button
-                  onClick={() => loadArtists()}
+                  onClick={handleRetry}
                   variant="outline"
                   className="mt-4"
                 >
