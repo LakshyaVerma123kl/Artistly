@@ -29,11 +29,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://artistly-r3nkeifzd-lakshya-vermas-projects.vercel.app",
-    ],
+    origin: ["https://artistly-r3nkeifzd-lakshya-vermas-projects.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
