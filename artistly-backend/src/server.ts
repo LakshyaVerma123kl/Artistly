@@ -29,7 +29,10 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(
   cors({
-    origin: ["https://artistly-r3nkeifzd-lakshya-vermas-projects.vercel.app"],
+    origin: [
+      "https://artistly-r3nkeifzd-lakshya-vermas-projects.vercel.app",
+      "https://artistly-henna.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
