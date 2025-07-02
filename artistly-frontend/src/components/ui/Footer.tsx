@@ -170,26 +170,6 @@ export default function Footer() {
                 <span>for artists worldwide</span>
               </div>
             </div>
-            <div className="flex space-x-6 text-sm">
-              <Link
-                href="/privacy"
-                className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-300 font-medium"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-300 font-medium"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/support"
-                className="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-300 font-medium"
-              >
-                Support
-              </Link>
-            </div>
           </div>
         </div>
       </div>
