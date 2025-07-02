@@ -49,8 +49,14 @@ app.use("/uploads", express.static(uploadsDir));
 // Rate limiting
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 100,
+    message: {
+      message:
+        "Too many requests from this IP. Please try again after 15 minutes.",
+    },
+    standardHeaders: true, // Include rate limit info in headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   })
 );
 
