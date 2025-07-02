@@ -5,27 +5,40 @@ import Head from "next/head";
 import ArtistCard from "@/components/ui/ArtistCard";
 import FilterBlock from "@/components/ui/FilterBlock";
 import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
+import { Filter, RefreshCw, AlertCircle } from "lucide-react";
 import { Artist } from "@/lib/types";
 import { api } from "@/lib/api";
 
 export default function ArtistsPage() {
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string>("");
 
   // Fetch all artists on initial load
   useEffect(() => {
-    const loadArtists = async () => {
-      try {
-        const data = await api.getArtists(); // already JSON
-        console.log("✅ Artists:", data); // ← check this!
-        setFilteredArtists(data);
-      } catch (err) {
-        console.error("❌ Failed to fetch artists:", err);
-      }
-    };
     loadArtists();
   }, []);
+
+  const loadArtists = async (filters?: {
+    category?: string;
+    location?: string;
+    priceRange?: string;
+  }) => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const data = await api.getArtists(filters);
+      console.log("✅ Artists loaded:", data);
+      setFilteredArtists(data);
+    } catch (err) {
+      console.error("❌ Failed to fetch artists:", err);
+      setError(err instanceof Error ? err.message : "Failed to load artists");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle filter changes
   const handleFilter = useCallback(
@@ -38,19 +51,51 @@ export default function ArtistsPage() {
       location: string;
       priceRange: string;
     }) => {
-      try {
-        const filtered = await api.getArtists({
-          category,
-          location,
-          priceRange,
-        });
-        setFilteredArtists(filtered);
-      } catch (err) {
-        console.error("Filter failed:", err);
-      }
+      const filters = {
+        ...(category && { category }),
+        ...(location && { location }),
+        ...(priceRange && { priceRange }),
+      };
+
+      await loadArtists(filters);
     },
     []
   );
+
+  // Handle artist deletion with better error handling
+  const handleDeleteArtist = useCallback(async (artistId: string) => {
+    try {
+      console.log("🗑️ Deleting artist with ID:", artistId);
+
+      await api.deleteArtist(artistId);
+
+      // Remove from local state immediately for better UX
+      setFilteredArtists((prev) =>
+        prev.filter((artist) => String(artist.id || artist._id) !== artistId)
+      );
+
+      console.log("✅ Artist deleted successfully");
+
+      // Optionally show a success message
+      // You can replace this with a toast notification if you have one
+      setTimeout(() => {
+        // This could be a toast notification instead
+        console.log("Artist removed from view");
+      }, 500);
+    } catch (error) {
+      console.error("❌ Failed to delete artist:", error);
+
+      // Re-throw to let the component handle the error display
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to delete artist"
+      );
+    }
+  }, []);
+
+  // Retry loading artists
+  const handleRetry = () => {
+    loadArtists();
+  };
 
   // Animation variants
   const cardVariants = {
@@ -61,6 +106,48 @@ export default function ArtistsPage() {
       transition: { delay: i * 0.05, duration: 0.2 },
     }),
   };
+
+  // Loading component
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              Loading artists...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error component
+  if (error && filteredArtists.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Failed to Load Artists
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+            <Button
+              onClick={handleRetry}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Suspense fallback={<div className="text-center py-12">Loading...</div>}>
@@ -88,7 +175,7 @@ export default function ArtistsPage() {
             Discover Talented Artists
           </motion.h1>
 
-          {/* Filter toggle for mobile */}
+          {/* Filter Section */}
           <div className="md:flex md:space-y-0 space-y-4">
             <Button
               onClick={() => setShowFilters(!showFilters)}
@@ -109,10 +196,17 @@ export default function ArtistsPage() {
             </div>
           </div>
 
-          {/* Debug Preview */}
-          {/* <pre className="bg-black text-white text-xs p-4 rounded overflow-x-auto max-h-60">
-            {JSON.stringify(filteredArtists, null, 2)}
-          </pre> */}
+          {/* Show error banner if there's an error but we still have artists */}
+          {error && filteredArtists.length > 0 && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                <p className="text-yellow-800 dark:text-yellow-200">
+                  Some operations may not work properly: {error}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Artist Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -131,7 +225,10 @@ export default function ArtistsPage() {
                     animate="visible"
                     variants={cardVariants}
                   >
-                    <ArtistCard artist={normalizedArtist} />
+                    <ArtistCard
+                      artist={normalizedArtist}
+                      onDelete={handleDeleteArtist}
+                    />
                   </motion.div>
                 );
               })
@@ -144,6 +241,14 @@ export default function ArtistsPage() {
                   Try adjusting your filters or submit one via the onboarding
                   form.
                 </p>
+                <Button
+                  onClick={() => loadArtists()}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
               </div>
             )}
           </div>

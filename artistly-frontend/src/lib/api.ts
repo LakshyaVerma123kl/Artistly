@@ -53,11 +53,25 @@ export const api = {
       body: JSON.stringify(data),
     }).then(handleResponse) as Promise<Artist>,
 
-  // DELETE artist
-  deleteArtist: (id: string) =>
-    fetch(`${API_BASE_URL}/api/artists/${id}`, {
+  // DELETE artist (Updated to void return + custom error message)
+  async deleteArtist(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/artists/${id}`, {
       method: "DELETE",
-    }).then(handleResponse) as Promise<{ message: string }>,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Failed to delete artist: ${res.status}`
+      );
+    }
+
+    // Successful deletion returns void
+    return;
+  },
 
   // POST upload image
   uploadImage: (file: File) => {
