@@ -67,7 +67,7 @@ export const api = {
     return fetch(`${API_BASE_URL}/api/upload`, {
       method: "POST",
       body: formData,
-    }).then(handleResponse) as Promise<{ imageUrl: string }>;
+    }).then(handleResponse) as Promise<{ filename: string; path: string }>;
   },
 
   // GET health (optional backend check)

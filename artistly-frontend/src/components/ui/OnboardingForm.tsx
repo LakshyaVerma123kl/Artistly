@@ -196,7 +196,7 @@ export default function OnboardingForm() {
       // 1. Upload image (if exists)
       if (formData.profileImage) {
         const uploadRes = await api.uploadImage(formData.profileImage);
-        imagePath = uploadRes.imageUrl; // /uploads/filename.jpg
+        imagePath = uploadRes.path;
       }
 
       // 2. Prepare artist payload
