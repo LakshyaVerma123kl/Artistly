@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
 
+// Ensure environment variables are treated as string literals
+const API_PROTOCOL = (process.env.NEXT_PUBLIC_API_PROTOCOL || "https") as
+  | "http"
+  | "https";
+const API_HOSTNAME = (process.env.NEXT_PUBLIC_API_HOSTNAME ||
+  "artistly-1jpx.onrender.com") as string;
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -10,14 +17,12 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "3001",
+        protocol: API_PROTOCOL,
+        hostname: API_HOSTNAME,
+        port: "",
         pathname: "/uploads/**",
       },
     ],
-    // Alternative: use domains (deprecated but still works)
-    // domains: ['images.unsplash.com', 'localhost'],
   },
 };
 
