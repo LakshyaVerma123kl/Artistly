@@ -2,6 +2,7 @@ Artistly
 This is a Next.js project bootstrapped with create-next-app.
 Getting Started
 First, run the development server:
+
 npm run dev
 
 # or
@@ -68,7 +69,7 @@ cd artistly-backend
 npm install
 npm run dev
 
-# ➜ Server running at http://localhost:3001
+# ➜ Server running at (https://artistly-1jpx.onrender.com/)
 
 Start the Frontend
 
@@ -76,7 +77,7 @@ cd artistly-frontend
 npm install
 npm run dev
 
-# ➜ App running at http://localhost:3000
+# ➜ App running at (https://artistly-henna.vercel.app/)
 
 Make sure the backend is running before testing any API integrations like onboarding or artist listings.
 Learn More
