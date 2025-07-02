@@ -19,6 +19,8 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "https://artistly-1jpx.onrender.com";
 
   // Normalize ID to work with _id or id
   const normalizedId = String(artist.id || artist._id);
@@ -71,7 +73,7 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
     if (!img)
       return "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop&crop=face";
 
-    return img.startsWith("/uploads/") ? `http://localhost:3001${img}` : img;
+    return img.startsWith("/uploads/") ? `${API_BASE_URL}${img}` : img;
   };
 
   return (

@@ -1,6 +1,7 @@
 import { Artist } from "@/lib/types"; // Adjust the path if needed
 
-const API_BASE_URL = "https://artistly-1jpx.onrender.com";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://artistly-1jpx.onrender.com";
 
 // Centralized response handler
 const handleResponse = async (res: Response) => {
