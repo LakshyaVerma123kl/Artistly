@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
 import Head from "next/head";
 import ArtistCard from "@/components/ui/ArtistCard";
@@ -10,66 +10,32 @@ import { Artist } from "@/lib/types";
 import { api } from "@/lib/api";
 
 export default function ArtistsPage() {
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
-  // Fetch all artists on initial load
-  const loadArtists = useCallback(
-    async (filters?: {
-      category?: string;
-      location?: string;
-      priceRange?: string;
-    }) => {
-      try {
-        setIsLoading(true);
-        setError("");
+  const loadArtists = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getArtists();
+      setArtists(data);
+      setFilteredArtists(data);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load artists");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-        console.log("🔄 Loading artists with filters:", filters);
-
-        const data = await api.getArtists(filters);
-        console.log("✅ Artists loaded:", data);
-        console.log("📊 Number of artists:", data?.length || 0);
-
-        // Ensure data is an array
-        if (Array.isArray(data)) {
-          setFilteredArtists(data);
-        } else {
-          console.error("❌ Expected array but got:", typeof data, data);
-          setFilteredArtists([]);
-          setError("Invalid data format received from server");
-        }
-      } catch (err) {
-        console.error("❌ Failed to fetch artists:", err);
-        setError(err instanceof Error ? err.message : "Failed to load artists");
-        setFilteredArtists([]); // Ensure state is reset on error
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  // Initial load effect
   useEffect(() => {
-    console.log("🚀 Component mounted, loading artists...");
     loadArtists();
   }, [loadArtists]);
 
-  // Debug effect to track state changes
-  useEffect(() => {
-    console.log("🔍 State updated:", {
-      isLoading,
-      artistsCount: filteredArtists.length,
-      hasError: !!error,
-      error,
-    });
-  }, [isLoading, filteredArtists.length, error]);
-
-  // Handle filter changes
   const handleFilter = useCallback(
-    async ({
+    ({
       category,
       location,
       priceRange,
@@ -78,46 +44,34 @@ export default function ArtistsPage() {
       location: string;
       priceRange: string;
     }) => {
-      const filters = {
-        ...(category && category !== "all" && { category }),
-        ...(location && location !== "all" && { location }),
-        ...(priceRange && priceRange !== "all" && { priceRange }),
-      };
-
-      console.log("🔍 Applying filters:", filters);
-      await loadArtists(Object.keys(filters).length > 0 ? filters : undefined);
+      let filtered = [...artists];
+      if (category && category !== "all")
+        filtered = filtered.filter((a) => a.category === category);
+      if (location && location !== "all")
+        filtered = filtered.filter((a) => a.location === location);
+      if (priceRange && priceRange !== "all")
+        filtered = filtered.filter((a) => a.priceRange === priceRange);
+      setFilteredArtists(filtered);
     },
-    [loadArtists]
+    [artists]
   );
 
-  // Handle artist deletion with better error handling
   const handleDeleteArtist = useCallback(async (artistId: string) => {
     try {
-      console.log("🗑️ Deleting artist with ID:", artistId);
-
       await api.deleteArtist(artistId);
-
-      // Remove from local state immediately for better UX
+      setArtists((prev) =>
+        prev.filter((a) => String(a.id || a._id) !== artistId)
+      );
       setFilteredArtists((prev) =>
-        prev.filter((artist) => String(artist.id || artist._id) !== artistId)
+        prev.filter((a) => String(a.id || a._id) !== artistId)
       );
-
-      console.log("✅ Artist deleted successfully");
     } catch (error) {
-      console.error("❌ Failed to delete artist:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to delete artist"
-      );
+      console.error("Failed to delete artist:", error);
     }
   }, []);
 
-  // Retry loading artists
-  const handleRetry = useCallback(() => {
-    console.log("🔄 Retrying to load artists...");
-    loadArtists();
-  }, [loadArtists]);
+  const handleRetry = () => loadArtists();
 
-  // Animation variants
   const cardVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: (i: number) => ({
@@ -127,52 +81,30 @@ export default function ArtistsPage() {
     }),
   };
 
-  console.log("🎨 Rendering component:", {
-    isLoading,
-    artistsCount: filteredArtists.length,
-    hasError: !!error,
-  });
-
-  // Loading component
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Loading artists...
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Please wait while we fetch the latest artists
-            </p>
-          </div>
+      <div className="min-h-screen py-16 px-4 flex items-center justify-center text-gray-600 dark:text-gray-300">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p>Loading artists...</p>
         </div>
       </div>
     );
   }
 
-  // Error component
   if (error && filteredArtists.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Failed to Load Artists
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
-            <Button
-              onClick={handleRetry}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
+      <div className="min-h-screen py-16 px-4 flex items-center justify-center text-center">
+        <div>
+          <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold">Failed to Load Artists</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">{error}</p>
+          <Button
+            onClick={handleRetry}
+            className="mt-4 bg-purple-600 text-white"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" /> Try Again
+          </Button>
         </div>
       </div>
     );
@@ -188,121 +120,66 @@ export default function ArtistsPage() {
       >
         <Head>
           <title>Artistly - Browse Artists</title>
-          <meta
-            name="description"
-            content="Browse and filter artists for your events."
-          />
         </Head>
 
         <div className="max-w-6xl mx-auto space-y-8">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"
-          >
+          <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
             Discover Talented Artists
-          </motion.h1>
+          </h1>
 
-          {/* Filter Section */}
           <div className="md:flex md:space-y-0 space-y-4">
             <Button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden w-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center space-x-2"
-              aria-label={showFilters ? "Hide filters" : "Show filters"}
+              className="md:hidden w-full bg-purple-600 text-white"
             >
-              <Filter className="w-4 h-4" />
-              <span>{showFilters ? "Hide Filters" : "Show Filters"}</span>
+              <Filter className="w-4 h-4 mr-2" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
             </Button>
+
             <div
               className={`${
                 showFilters ? "block" : "hidden"
               } md:block w-full md:w-auto`}
             >
-              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl shadow-lg p-6">
+              <div className="bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-6">
                 <FilterBlock onFilter={handleFilter} />
               </div>
             </div>
           </div>
 
-          {/* Show error banner if there's an error but we still have artists */}
-          {error && filteredArtists.length > 0 && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                <p className="text-yellow-800 dark:text-yellow-200">
-                  Some operations may not work properly: {error}
-                </p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredArtists.map((artist, index) => {
+              const normalizedArtist = {
+                ...artist,
+                id: artist._id ?? artist.id,
+              };
+              return (
+                <motion.div
+                  key={normalizedArtist.id || `artist-${index}`}
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  variants={cardVariants}
+                >
+                  <ArtistCard
+                    artist={normalizedArtist}
+                    onDelete={handleDeleteArtist}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {filteredArtists.length === 0 && (
+            <div className="col-span-full bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg p-6 text-center">
+              <p className="text-md font-medium text-gray-600 dark:text-gray-300">
+                No artists found.
+              </p>
+              <Button onClick={handleRetry} variant="outline" className="mt-4">
+                <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+              </Button>
             </div>
           )}
-
-          {/* Debug Info - Remove this in production */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <p className="text-blue-800 dark:text-blue-200 text-sm">
-              Debug: Found {filteredArtists.length} artists | Loading:{" "}
-              {isLoading.toString()} | Error: {error || "none"}
-            </p>
-          </div>
-
-          {/* Artist Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredArtists.length > 0 ? (
-              filteredArtists.map((artist, index) => {
-                // Skip invalid or malformed artist entries
-                if (!artist || !(artist._id || artist.id) || !artist.name) {
-                  console.warn(
-                    `⚠️ Skipping malformed artist at index ${index}`,
-                    artist
-                  );
-                  return null;
-                }
-
-                const normalizedArtist = {
-                  ...artist,
-                  id: artist._id ?? artist.id,
-                };
-
-                console.log(
-                  `🎭 Rendering artist ${index + 1}:`,
-                  normalizedArtist.name
-                );
-
-                return (
-                  <motion.div
-                    key={normalizedArtist.id || `artist-${index}`}
-                    custom={index}
-                    initial="hidden"
-                    animate="visible"
-                    variants={cardVariants}
-                  >
-                    <ArtistCard
-                      artist={normalizedArtist}
-                      onDelete={handleDeleteArtist}
-                    />
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="col-span-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg p-6 text-center">
-                <p className="text-md font-medium text-gray-600 dark:text-gray-300">
-                  No artists found.
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Try adjusting your filters or submit one via the onboarding
-                  form.
-                </p>
-                <Button
-                  onClick={handleRetry}
-                  variant="outline"
-                  className="mt-4"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
-            )}
-          </div>
         </div>
       </motion.div>
     </Suspense>
