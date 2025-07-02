@@ -32,7 +32,7 @@ export default function DashboardTable({
 
   const handleDelete = (artist: Artist) => {
     if (confirm(`Are you sure you want to delete ${artist.name}?`)) {
-      onDeleteArtist(artist.id);
+      onDeleteArtist(artist.id!);
     }
   };
 

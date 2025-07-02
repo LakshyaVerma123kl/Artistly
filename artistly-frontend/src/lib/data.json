@@ -1,0 +1,84 @@
+{
+  "artists": [
+    {
+      "id": "1",
+      "name": "Arijit Singh",
+      "category": "Singer",
+      "priceRange": "₹5L-10L",
+      "location": "Mumbai",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "2",
+      "name": "Nritya Dance Co.",
+      "category": "Dancer",
+      "priceRange": "₹1L-3L",
+      "location": "Delhi",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "3",
+      "name": "DJ Sukh",
+      "category": "DJ",
+      "priceRange": "₹2L-5L",
+      "location": "Bangalore",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "4",
+      "name": "Ravi Sharma",
+      "category": "Speaker",
+      "priceRange": "₹50K-1L",
+      "location": "Pune",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "5",
+      "name": "Shreya Ghoshal",
+      "category": "Singer",
+      "priceRange": "₹5L-10L",
+      "location": "Mumbai",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "6",
+      "name": "Bollywood Beats",
+      "category": "Dancer",
+      "priceRange": "₹2L-5L",
+      "location": "Delhi",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "7",
+      "name": "DJ Aqeel",
+      "category": "DJ",
+      "priceRange": "₹1L-3L",
+      "location": "Mumbai",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "8",
+      "name": "Dr. Kiran Bedi",
+      "category": "Speaker",
+      "priceRange": "₹2L-5L",
+      "location": "Delhi",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "9",
+      "name": "Rahat Fateh Ali Khan",
+      "category": "Singer",
+      "priceRange": "₹5L-10L",
+      "location": "Delhi",
+      "image": "/images/images.jpg"
+    },
+    {
+      "id": "10",
+      "name": "Terrence Lewis",
+      "category": "Dancer",
+      "priceRange": "₹2L-5L",
+      "location": "Mumbai",
+      "image": "/images/images.jpg"
+    }
+  ]
+}

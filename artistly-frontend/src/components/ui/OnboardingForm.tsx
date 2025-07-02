@@ -15,7 +15,8 @@ import {
   ArrowRight,
   ArrowLeft,
 } from "lucide-react";
-import { Artist } from "@/lib/types";
+import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 const categories = [
   "Singer",
@@ -57,15 +58,8 @@ interface FormData {
   experience: string;
 }
 
-const generateUniqueId = (existingIds: Set<string>): string => {
-  let id: string;
-  do {
-    id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  } while (existingIds.has(id));
-  return id;
-};
-
 export default function OnboardingForm() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -195,37 +189,42 @@ export default function OnboardingForm() {
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
     setIsSubmitting(true);
+
     try {
-      const existingArtists: Artist[] = JSON.parse(
-        localStorage.getItem("artists") || "[]"
-      );
-      const existingIds = new Set(
-        existingArtists.map((artist) => String(artist.id))
-      );
-      const newId = generateUniqueId(existingIds);
-      const newArtist = {
-        id: newId,
+      let imagePath = "";
+
+      // 1. Upload image (if exists)
+      if (formData.profileImage) {
+        const uploadRes = await api.uploadImage(formData.profileImage);
+        imagePath = uploadRes.imageUrl; // /uploads/filename.jpg
+      }
+
+      // 2. Prepare artist payload
+      const artistPayload = {
         name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        location: formData.location,
         category: formData.categories[0],
         priceRange: formData.feeRange,
-        location: formData.location,
-        image: imagePreview || "/api/placeholder/300/200",
         bio: formData.bio,
         languages: formData.languages,
         categories: formData.categories,
-        phone: formData.phone,
-        email: formData.email,
         experience: formData.experience,
+        image: imagePath || "/placeholder.jpg",
       };
-      existingArtists.push(newArtist);
-      localStorage.setItem("artists", JSON.stringify(existingArtists));
+
+      // 3. Submit to backend
+      await api.createArtist(artistPayload);
+
       setSuccessMessage(
-        "Your profile has been submitted successfully! You'll be redirected to the artists page."
+        "Your profile has been submitted successfully! Redirecting..."
       );
       setTimeout(() => {
-        window.location.href = "/artists";
+        router.push("/artists");
       }, 2000);
-    } catch {
+    } catch (err) {
+      console.error("Submission failed:", err);
       setErrors({ submit: "Something went wrong. Please try again." });
     } finally {
       setIsSubmitting(false);

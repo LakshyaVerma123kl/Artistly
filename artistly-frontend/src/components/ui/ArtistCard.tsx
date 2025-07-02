@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Artist } from "@/lib/types";
@@ -16,14 +18,17 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
   const [isLiked, setIsLiked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  // Check if artist is already in localStorage
+  // Normalize ID to work with _id or id
+  const normalizedId = String(artist.id || artist._id);
+
   useEffect(() => {
     const storedArtists: Artist[] = JSON.parse(
       localStorage.getItem("artists") || "[]"
     );
-    setIsAdded(storedArtists.some((a) => a.id === String(artist.id)));
-  }, [artist.id]);
+    setIsAdded(storedArtists.some((a) => String(a.id) === normalizedId));
+  }, [normalizedId]);
 
   const handleQuoteRequest = async () => {
     setIsLoading(true);
@@ -42,19 +47,31 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
     const storedArtists: Artist[] = JSON.parse(
       localStorage.getItem("artists") || "[]"
     );
-    if (storedArtists.some((a) => a.id === String(artist.id))) {
+    if (storedArtists.some((a) => String(a.id) === normalizedId)) {
       alert(`${artist.name} is already added to the dashboard.`);
       return;
     }
 
     const newArtist = {
       ...artist,
-      id: String(artist.id), // Ensure ID is string
+      id: normalizedId,
     };
     storedArtists.push(newArtist);
     localStorage.setItem("artists", JSON.stringify(storedArtists));
     setIsAdded(true);
     alert(`${artist.name} added to dashboard!`);
+  };
+
+  const getImageSrc = () => {
+    if (imageError) {
+      return "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop&crop=face";
+    }
+
+    const img = artist.image;
+    if (!img)
+      return "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop&crop=face";
+
+    return img.startsWith("/uploads/") ? `http://localhost:3001${img}` : img;
   };
 
   return (
@@ -69,14 +86,15 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
       <div className="relative overflow-hidden">
         <div className="aspect-[3/2] relative">
           <Image
-            src={artist.image || "/api/placeholder/300/200"}
+            src={getImageSrc()}
             alt={artist.name}
             fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-103"
+            onError={() => setImageError(true)}
+            priority={false}
           />
-          {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-          {/* Floating Action Buttons */}
           <div className="absolute top-3 right-3 flex flex-col space-y-2">
             <button
               onClick={handleLike}
@@ -92,7 +110,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
             </button>
           </div>
-          {/* Status Badge */}
           <div className="absolute bottom-3 left-3 bg-green-500 text-white px-2 py-1 rounded-sm text-xs font-medium flex items-center space-x-1 shadow-sm">
             <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
             <span>Available</span>
@@ -102,7 +119,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
 
       {/* Content */}
       <div className="p-5 space-y-3">
-        {/* Header */}
         <div className="space-y-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-200">
             {artist.name}
@@ -118,7 +134,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
           </div>
         </div>
 
-        {/* Price Section */}
         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-600 dark:text-gray-400">
@@ -140,7 +155,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={handleQuoteRequest}
@@ -182,7 +196,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
           </Button>
         </div>
 
-        {/* Tags */}
         <div className="flex flex-wrap gap-1">
           {(artist.categories || [artist.category]).map(
             (tag: string, index: number) => (
@@ -197,7 +210,6 @@ export default function ArtistCard({ artist }: { artist: Artist }) {
         </div>
       </div>
 
-      {/* Hover Ring Effect */}
       <div className="absolute inset-0 rounded-2xl ring-0 group-hover:ring-0.5 ring-purple-400/10 transition-all duration-200 pointer-events-none" />
     </div>
   );

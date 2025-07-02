@@ -1,11 +1,12 @@
 export interface Artist {
-  id: string | number;
+  _id?: string; // From MongoDB
+  id?: string | number; // Normalized for frontend use
   name: string;
   category: string;
   priceRange: string;
   location: string;
   image: string;
-  categories?: string[]; // Optional to support existing artists without categories
+  categories?: string[];
   bio?: string;
   languages?: string[];
   phone?: string;

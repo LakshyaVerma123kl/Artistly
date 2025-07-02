@@ -1,38 +1,35 @@
 "use client";
-import { useState, useCallback, Suspense, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import Head from "next/head";
 import ArtistCard from "@/components/ui/ArtistCard";
 import FilterBlock from "@/components/ui/FilterBlock";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
-import data from "@/lib/data.json";
 import { Artist } from "@/lib/types";
+import { api } from "@/lib/api";
 
 export default function ArtistsPage() {
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Load artists from localStorage and combine with static data
+  // Fetch all artists on initial load
   useEffect(() => {
-    const storedArtists: Artist[] = JSON.parse(
-      localStorage.getItem("artists") || "[]"
-    );
-    const allArtists = [...data.artists, ...storedArtists].reduce(
-      (acc: Artist[], artist) => {
-        if (!acc.find((a) => a.id === String(artist.id))) {
-          acc.push({ ...artist, id: String(artist.id) });
-        }
-        return acc;
-      },
-      []
-    );
-    setFilteredArtists(allArtists);
+    const loadArtists = async () => {
+      try {
+        const data = await api.getArtists(); // already JSON
+        console.log("✅ Artists:", data); // ← check this!
+        setFilteredArtists(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch artists:", err);
+      }
+    };
+    loadArtists();
   }, []);
 
-  // Memoize the filter handler
+  // Handle filter changes
   const handleFilter = useCallback(
-    ({
+    async ({
       category,
       location,
       priceRange,
@@ -41,33 +38,21 @@ export default function ArtistsPage() {
       location: string;
       priceRange: string;
     }) => {
-      const storedArtists: Artist[] = JSON.parse(
-        localStorage.getItem("artists") || "[]"
-      );
-      const allArtists = [...data.artists, ...storedArtists].reduce(
-        (acc: Artist[], artist) => {
-          if (!acc.find((a) => a.id === String(artist.id))) {
-            acc.push({ ...artist, id: String(artist.id) });
-          }
-          return acc;
-        },
-        []
-      );
-      let filtered = allArtists;
-      if (category)
-        filtered = filtered.filter((artist) => artist.category === category);
-      if (location)
-        filtered = filtered.filter((artist) => artist.location === location);
-      if (priceRange)
-        filtered = filtered.filter(
-          (artist) => artist.priceRange === priceRange
-        );
-      setFilteredArtists(filtered);
+      try {
+        const filtered = await api.getArtists({
+          category,
+          location,
+          priceRange,
+        });
+        setFilteredArtists(filtered);
+      } catch (err) {
+        console.error("Filter failed:", err);
+      }
     },
     []
   );
 
-  // Animation variants for cards
+  // Animation variants
   const cardVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: (i: number) => ({
@@ -92,6 +77,7 @@ export default function ArtistsPage() {
             content="Browse and filter artists for your events."
           />
         </Head>
+
         <div className="max-w-6xl mx-auto space-y-8">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
@@ -102,7 +88,7 @@ export default function ArtistsPage() {
             Discover Talented Artists
           </motion.h1>
 
-          {/* Filter Toggle for Mobile */}
+          {/* Filter toggle for mobile */}
           <div className="md:flex md:space-y-0 space-y-4">
             <Button
               onClick={() => setShowFilters(!showFilters)}
@@ -123,27 +109,40 @@ export default function ArtistsPage() {
             </div>
           </div>
 
-          {/* Card Grid */}
+          {/* Debug Preview */}
+          {/* <pre className="bg-black text-white text-xs p-4 rounded overflow-x-auto max-h-60">
+            {JSON.stringify(filteredArtists, null, 2)}
+          </pre> */}
+
+          {/* Artist Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArtists.length > 0 ? (
-              filteredArtists.map((artist, index) => (
-                <motion.div
-                  key={artist.id}
-                  custom={index}
-                  initial="hidden"
-                  animate="visible"
-                  variants={cardVariants}
-                >
-                  <ArtistCard artist={artist} />
-                </motion.div>
-              ))
+              filteredArtists.map((artist, index) => {
+                const normalizedArtist = {
+                  ...artist,
+                  id: artist._id ?? artist.id,
+                };
+
+                return (
+                  <motion.div
+                    key={normalizedArtist.id}
+                    custom={index}
+                    initial="hidden"
+                    animate="visible"
+                    variants={cardVariants}
+                  >
+                    <ArtistCard artist={normalizedArtist} />
+                  </motion.div>
+                );
+              })
             ) : (
               <div className="col-span-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-xl shadow-lg p-6 text-center">
                 <p className="text-md font-medium text-gray-600 dark:text-gray-300">
                   No artists found.
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Try adjusting your filters.
+                  Try adjusting your filters or submit one via the onboarding
+                  form.
                 </p>
               </div>
             )}
