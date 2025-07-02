@@ -249,6 +249,15 @@ export default function ArtistsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArtists.length > 0 ? (
               filteredArtists.map((artist, index) => {
+                // Skip invalid or malformed artist entries
+                if (!artist || !(artist._id || artist.id) || !artist.name) {
+                  console.warn(
+                    `⚠️ Skipping malformed artist at index ${index}`,
+                    artist
+                  );
+                  return null;
+                }
+
                 const normalizedArtist = {
                   ...artist,
                   id: artist._id ?? artist.id,
