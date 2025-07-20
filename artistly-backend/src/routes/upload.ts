@@ -1,33 +1,18 @@
 // routes/upload.ts
 import { Router, Request, Response } from "express";
+import { put } from "@vercel/blob";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 
 const router = Router();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, "../../uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const extension = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${extension}`);
-  },
-});
+// Use memory storage for serverless compatibility
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit (matching your frontend validation)
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -45,8 +30,8 @@ const upload = multer({
 });
 
 // Upload endpoint
-router.post("/", (req: Request, res: Response) => {
-  upload.single("file")(req, res, (err) => {
+router.post("/", async (req: Request, res: Response) => {
+  upload.single("file")(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
@@ -68,15 +53,33 @@ router.post("/", (req: Request, res: Response) => {
       });
     }
 
-    console.log("File uploaded successfully:", req.file.filename);
+    try {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const extension = path.extname(req.file.originalname);
+      const filename = `${uniqueSuffix}${extension}`;
 
-    return res.status(200).json({
-      message: "File uploaded successfully",
-      filename: req.file.filename,
-      path: `/uploads/${req.file.filename}`,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-    });
+      // Upload to Vercel Blob
+      const blob = await put(filename, req.file.buffer, {
+        access: "public",
+      });
+
+      console.log("File uploaded successfully to Vercel Blob:", filename);
+
+      return res.status(200).json({
+        message: "File uploaded successfully",
+        filename: filename,
+        url: blob.url, // This is the full URL you'll store in MongoDB
+        path: blob.url, // For compatibility with your existing frontend
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+    } catch (error) {
+      console.error("Vercel Blob upload error:", error);
+      return res.status(500).json({
+        message: "Failed to upload file to storage",
+      });
+    }
   });
 });
 
