@@ -150,9 +150,18 @@ export default function ArtistsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArtists.map((artist, index) => {
               const normalizedArtist = {
-                ...artist,
-                id: artist._id ?? artist.id,
-              };
+  ...artist,
+  id: artist._id ?? artist.id,
+  name: artist.name?.trim() || "Unnamed Artist",
+  category: artist.category?.trim() || "Uncategorized",
+  location: artist.location?.trim() || "Unknown",
+  priceRange: artist.priceRange?.trim() || "",
+  image:
+    artist.image && artist.image.trim() !== ""
+      ? artist.image
+      : "/placeholder.jpg",
+};
+
               return (
                 <motion.div
                   key={normalizedArtist.id || `artist-${index}`}
